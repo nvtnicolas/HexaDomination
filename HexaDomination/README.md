@@ -1,86 +1,79 @@
-# 🎮 HexaDomination
+# HexaDomination Web
 
-**HexaDomination** est un jeu de stratégie multijoueur en local, basé sur un système de tuiles hexagonales. Il fonctionne avec un serveur de matchmaking, des clients connectés via sockets, et une base de données pour le suivi des parties.
-
----
-
-## 🚀 Fonctionnalités principales
-
-- Serveur de matchmaking avec gestion de file d'attente
-- Jeu de plateau au **tour par tour** entre deux joueurs
-- Génération dynamique du plateau
-- Clients connectés par **sockets TCP**
-- Interface utilisateur en Pygame
-- Suivi des parties dans une base SQLite (matchs, coups)
-- Algorithme de validation de coups + détection de victoire
+**HexaDomination Web** est une version web multijoueur de HexaDomination, jouable directement depuis un navigateur. Deux joueurs peuvent créer ou rejoindre un salon grâce à un code, puis jouer ensemble en temps réel.
 
 ---
 
-## 🧱 Architecture
+## Fonctionnalités
 
-+-----------+ Socket +-----------+ SQL +-------------+
-| Client A | <----------------> | Serveur | <-------------> | BDD (SQLite) |
-+-----------+ +-----------+ +-------------+
-▲ ▲
-| |
-+-----------+ +-----------+
-| Client B | <----------------> | Matchmaking + Logique |
-+-----------+ +-----------+
-
-## 🛠️ Technologies utilisées
-
-| Élément         | Technologie      |
-|----------------|------------------|
-| Langage         | Python 3.x       |
-| Interface       | Pygame (Client)  |
-| Réseau          | Sockets (TCP/IP) |
-| BDD             | SQLite           |
-| Format messages | JSON             |
+- Création et rejoint de salons privés via un code.
+- Communication en temps réel grâce à Flask-SocketIO.
+- Interface web simple (HTML/JS) accessible depuis n'importe quel navigateur sur le réseau.
 
 ---
 
-## 🗃️ Structure du projet
+## Installation
 
+1. **Cloner le dépôt ou copier les fichiers nécessaires**  
+   Placez-vous dans le dossier du projet.
+
+2. **Installer les dépendances Python**  
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Lancer le serveur web**  
+   ```bash
+   python webserver.py
+   ```
+
+4. **Accéder au jeu**  
+   Depuis un navigateur, allez à l’adresse suivante :  
+   ```
+   http://<IP_DU_SERVEUR>:5000
+   ```
+   Remplacez `<IP_DU_SERVEUR>` par l’adresse IP de la machine qui héberge le serveur.
+
+---
+
+## Structure du projet
+
+```
 HexaDomination/
-├── client/
-│   ├── client.py
-│   ├── ihm.py
-│   └── utils.py
-├── server/
-│   ├── server.py
-│   ├── matchmaking.py
-│   ├── game_logic.py
-│   └── database.py
-├── assets/
-│   └── (images, sons)
-├── db/
-│   └── hexa_domination.db
-├── README.md
-└── requirements.txt
+│
+├── webserver.py           # Serveur Flask + SocketIO
+├── requirements.txt       # Dépendances Python
+└── templates/
+    └── index.html         # Interface web du jeu
+```
 
 ---
 
-## 📝 Base de données
+## Utilisation
 
-### Tables principales :
-- `file_attente(id, pseudo, ip, port, date_arrivee)`
-- `matchs(id, joueur1_ip, joueur2_ip, plateau, etat, resultat)`
-- `tours(id, match_id, joueur, coup, timestamp)`
+- **Créer un salon** : Cliquez sur "Créer un salon", choisissez un code (ou laissez vide pour un code aléatoire), puis partagez ce code avec votre adversaire.
+- **Rejoindre un salon** : Cliquez sur "Rejoindre un salon", entrez le code reçu, puis attendez que la partie commence.
+- **Jouer** : L’interface de jeu reste à compléter en JavaScript pour gérer le plateau, les actions, etc.
 
 ---
 
-## 🎮 Lancer le projet
+## Développement
 
-### 1. Installer les dépendances :
+- Le cœur du jeu (plateau, règles, etc.) doit être implémenté en JavaScript dans `index.html`.
+- Le serveur Python ne fait que relayer les messages et gérer les salons.
 
-pip install -r requirements.txt
+---
 
-### 2. Lancer le serveur :
+## Remarques
 
-cd server
-python server.py
+- Le jeu fonctionne en local ou sur un réseau local. Pour jouer à distance, ouvrez le port 5000 sur votre box/routeur.
+- Pygame et Tkinter ne sont plus utilisés : tout se passe dans le navigateur.
 
-### 3. Lancer les clients (sur deux terminaux) :
+---
 
-cd client
-python client.py
+## Auteurs
+
+- Projet adapté pour le web par [Votre Nom]  
+- Basé sur HexaDomination (projet original)
+
+---
