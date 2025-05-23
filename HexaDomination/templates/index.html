@@ -1,24 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>HexaDomination Web</title>
+    <title>HexaDomination - Salons</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body { font-family: Arial; background: #e0f0ff; text-align: center; }
-        #game, #room { display: none; }
-        button { font-size: 1.2em; margin: 10px; }
-        input { font-size: 1.2em; }
+        button, input { font-size: 1.2em; margin: 10px; }
     </style>
 </head>
 <body>
-    <h1>HexaDomination Web</h1>
+    <h1>HexaDomination - Salons</h1>
+    <div id="pseudo_entry">
+        <input id="pseudo" placeholder="Votre pseudo">
+    </div>
     <div id="menu">
         <button onclick="showCreate()">Créer un salon</button>
         <button onclick="showJoin()">Rejoindre un salon</button>
+        <button onclick="joinQueue()">Entrer dans la file d'attente</button>
     </div>
     <div id="create" style="display:none;">
         <h2>Créer un salon</h2>
         <input id="create_code" value="" placeholder="Code (ex: ABC123)" maxlength="12">
+        <input type="checkbox" id="create_visible" checked> Salon visible
         <button onclick="createRoom()">Créer</button>
         <button onclick="showMenu()">Retour</button>
     </div>
@@ -27,23 +30,18 @@
         <input id="join_code" value="" placeholder="Code du salon" maxlength="12">
         <button onclick="joinRoom()">Rejoindre</button>
         <button onclick="showMenu()">Retour</button>
+        <button onclick="showVisibleRooms()">Voir les salons visibles</button>
         <div id="join_error" style="color:red;"></div>
-    </div>
-    <div id="room">
-        <h2>Salon <span id="room_code"></span></h2>
-        <div id="game">
-            <p>Le jeu commence ici ! (à implémenter en JS)</p>
-            <button onclick="sendMessage()">Envoyer un message</button>
-            <div id="messages"></div>
-        </div>
+        <div id="visible_rooms"></div>
     </div>
     <script>
         const socket = io();
+        let pseudo = "";
+
         function showMenu() {
             document.getElementById('menu').style.display = '';
             document.getElementById('create').style.display = 'none';
             document.getElementById('join').style.display = 'none';
-            document.getElementById('room').style.display = 'none';
         }
         function showCreate() {
             document.getElementById('menu').style.display = 'none';
@@ -56,37 +54,57 @@
             document.getElementById('join').style.display = '';
         }
         function createRoom() {
+            pseudo = document.getElementById('pseudo').value.trim();
             const code = document.getElementById('create_code').value.trim().toUpperCase() || Math.random().toString(36).substr(2,6).toUpperCase();
-            socket.emit('create_room', {code: code});
+            const visible = document.getElementById('create_visible').checked;
+            if (!pseudo) { alert("Entrez un pseudo !"); return; }
+            socket.emit('create_room', {code: code, pseudo: pseudo, visible: visible});
         }
         function joinRoom() {
+            pseudo = document.getElementById('pseudo').value.trim();
             const code = document.getElementById('join_code').value.trim().toUpperCase();
-            socket.emit('join_room', {code: code});
+            if (!pseudo) { alert("Entrez un pseudo !"); return; }
+            socket.emit('join_room', {code: code, pseudo: pseudo});
+        }
+        function joinQueue() {
+            pseudo = document.getElementById('pseudo').value.trim();
+            if (!pseudo) {
+                alert("Veuillez entrer un pseudo !");
+                return;
+            }
+            socket.emit('join_queue', {pseudo: pseudo});
+        }
+        function showVisibleRooms() {
+            socket.emit('get_visible_rooms');
         }
         socket.on('room_created', data => {
-            document.getElementById('room_code').innerText = data.code;
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('create').style.display = 'none';
-            document.getElementById('room').style.display = '';
-            document.getElementById('game').style.display = '';
+            window.location.href = `/waiting?code=${data.code}&pseudo=${encodeURIComponent(pseudo)}`;
         });
         socket.on('room_joined', data => {
-            document.getElementById('room_code').innerText = data.code;
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('join').style.display = 'none';
-            document.getElementById('room').style.display = '';
-            document.getElementById('game').style.display = '';
+            window.location.href = `/waiting?code=${data.code}&pseudo=${encodeURIComponent(pseudo)}`;
         });
         socket.on('join_failed', data => {
             document.getElementById('join_error').innerText = data.reason;
         });
-        function sendMessage() {
-            const code = document.getElementById('room_code').innerText;
-            socket.emit('game_message', {code: code, msg: "Coucou !"});
-        }
-        socket.on('game_message', data => {
-            const div = document.getElementById('messages');
-            div.innerHTML += "<div>"+data.msg+"</div>";
+        socket.on('queue_joined', data => {
+            alert("Vous êtes dans la file d'attente depuis " + data.date);
+        });
+        socket.on('visible_rooms', rooms => {
+            const div = document.getElementById('visible_rooms');
+            div.innerHTML = '';
+            if (rooms.length === 0) {
+                div.innerHTML = "<i>Aucun salon visible disponible.</i>";
+            } else {
+                rooms.forEach(room => {
+                    const btn = document.createElement('button');
+                    btn.textContent = `Salon ${room.code} (${room.players.length}/2)`;
+                    btn.onclick = () => {
+                        pseudo = document.getElementById('pseudo').value.trim();
+                        socket.emit('join_room', {code: room.code, pseudo: pseudo});
+                    };
+                    div.appendChild(btn);
+                });
+            }
         });
         showMenu();
     </script>

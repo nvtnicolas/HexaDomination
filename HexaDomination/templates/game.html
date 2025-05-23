@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HexaDomination - Jeu</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial; background: #e0f0ff; text-align: center; }
+        #game { margin-top: 30px; }
+        button { font-size: 1.2em; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>HexaDomination - Partie</h1>
+    <div id="game">
+        <p>Le jeu commence ici ! (plateau à implémenter en JS)</p>
+        <button onclick="sendMessage()">Envoyer un message</button>
+        <div id="messages"></div>
+    </div>
+    <script>
+        const socket = io();
+        // Récupère code et pseudo depuis l'URL
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const pseudo = params.get('pseudo');
+
+        function sendMessage() {
+            socket.emit('game_message', {code: code, msg: pseudo + " dit coucou !"});
+        }
+        socket.on('game_message', data => {
+            const div = document.getElementById('messages');
+            div.innerHTML += "<div>"+data.msg+"</div>";
+        });
+        // À compléter : logique du plateau, gestion des coups, etc.
+    </script>
+</body>
+</html>
