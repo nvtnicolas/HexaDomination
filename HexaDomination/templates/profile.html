@@ -1,0 +1,17 @@
+<h2>Profil de {{ username }}</h2>
+<h3>Amis</h3>
+<ul>
+{% for friend in friends %}
+    <li>{{ friend }}</li>
+{% endfor %}
+</ul>
+<form method="post" action="/add_friend">
+    <input name="friend" placeholder="Ajouter un ami">
+    <button type="submit">Ajouter</button>
+</form>
+<h3>Historique des parties</h3>
+<ul>
+{% for game in games %}
+    <li>Contre {{ game[2] if game[1]==username else game[1] }} - Gagnant : {{ game[3] }}</li>
+{% endfor %}
+</ul>

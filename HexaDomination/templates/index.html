@@ -9,6 +9,9 @@
     </style>
 </head>
 <body>
+    <div id="login_prompt" style="display:none;">
+        <button onclick="window.location.href='/login'">Se connecter</button>
+    </div>
     <h1>HexaDomination - Salons</h1>
     <div id="pseudo_entry">
         <input id="pseudo" placeholder="Votre pseudo">
@@ -106,6 +109,18 @@
                 });
             }
         });
+        fetch('/profile')
+            .then(resp => {
+                if (resp.redirected) {
+                    // Pas connecté, affiche le bouton de connexion
+                    document.getElementById('login_prompt').style.display = '';
+                    document.getElementById('menu').style.display = 'none';
+                } else {
+                    // Connecté, affiche le menu
+                    document.getElementById('login_prompt').style.display = 'none';
+                    document.getElementById('menu').style.display = '';
+                }
+            });
         showMenu();
     </script>
 </body>

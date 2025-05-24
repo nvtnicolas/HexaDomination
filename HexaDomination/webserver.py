@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
+from database import init_db, add_user, check_user, get_user_games, add_friend, get_friends, save_game
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -25,6 +26,51 @@ def show_queue():
 @app.route("/waiting")
 def waiting():
     return render_template("waiting.html")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        if add_user(username, password):
+            return "Compte créé ! <a href='/login'>Se connecter</a>"
+        else:
+            return "Nom d'utilisateur déjà pris."
+    return render_template("register.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        if check_user(username, password):
+            session["username"] = username
+            return redirect(f"/profile?username={username}")
+        else:
+            return "Identifiants incorrects."
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.pop("username", None)
+    return redirect("/login")
+
+@app.route("/add_friend", methods=["POST"])
+def add_friend_route():
+    if "username" not in session:
+        return redirect("/login")
+    friend = request.form["friend"]
+    if add_friend(session["username"], friend):
+        return redirect(f"/profile?username={session['username']}")
+    else:
+        return "Erreur lors de l'ajout de l'ami."
+
+@app.route("/profile")
+def profile():
+    username = request.args.get("username")
+    games = get_user_games(username)
+    friends = get_friends(username)
+    return render_template("profile.html", username=username, games=games, friends=friends)
 
 @socketio.on('create_room')
 def on_create(data):
@@ -102,6 +148,9 @@ def waiting_ready(data):
     # Si les deux sont prêts, on lance le jeu
     if len(waiting_rooms[code]) == 2 and all(p['ready'] for p in waiting_rooms[code]):
         emit('start_game', room=code)
+
+# Exemple d'utilisation après la détection de la victoire :
+# save_game(player1, player2, winner)
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
