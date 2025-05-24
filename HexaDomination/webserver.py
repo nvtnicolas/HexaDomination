@@ -11,6 +11,9 @@ rooms = {}  # code_salon: {'players': [pseudo1, pseudo2], 'visible': True/False}
 queue = []  # Liste des joueurs en attente : [{pseudo, ip, date, sid}]
 waiting_rooms = {}  # code: [{'pseudo':..., 'ready':False, 'sid':...}, ...]
 
+# Initialiser la base de données
+init_db()
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -32,10 +35,16 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+        # Vérifie si le nom d'utilisateur existe déjà
+        from database import check_user_exists
+        if check_user_exists(username):
+            return "Nom d'utilisateur déjà pris."
+        if not password:
+            return "Le mot de passe est obligatoire."
         if add_user(username, password):
             return "Compte créé ! <a href='/login'>Se connecter</a>"
         else:
-            return "Nom d'utilisateur déjà pris."
+            return "Erreur lors de la création du compte."
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
@@ -153,4 +162,5 @@ def waiting_ready(data):
 # save_game(player1, player2, winner)
 
 if __name__ == "__main__":
+    init_db()
     socketio.run(app, host="0.0.0.0", port=5000)

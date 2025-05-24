@@ -1,24 +1,247 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>HexaDomination - Jeu</title>
+    <title>HexaDomination - Tower Defense Solo</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body { font-family: Arial; background: #e0f0ff; text-align: center; }
         #game { margin-top: 30px; }
-        button { font-size: 1.2em; margin: 10px; }
+        canvas { background: #b7e0b7; border: 2px solid #333; }
+        #messages { margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>HexaDomination - Partie</h1>
+    <h1>HexaDomination - Tower Defense (Solo)</h1>
     <div id="game">
-        <p>Le jeu commence ici ! (plateau à implémenter en JS)</p>
-        <button onclick="sendMessage()">Envoyer un message</button>
+        <canvas id="board" width="700" height="400"></canvas>
+        <div>
+            <span id="money">Argent : 100</span>
+            <span id="waveinfo" style="margin-left:30px;">Vague : 1</span>
+        </div>
         <div id="messages"></div>
     </div>
     <script>
+        // --- Plateau ---
+        const ctx = document.getElementById('board').getContext('2d');
+        const rows = 6, cols = 8;
+        const tileW = 60, tileH = 30; // isométrique vue 3/4 côté
+        let money = 100;
+        let towers = []; // {i, j, level}
+        let enemies = []; // {progress, hp, maxHp}
+        let placing = false;
+        let wave = 1;
+        let waveEnemies = 5;
+        let waveHp = 2;
+        let waveActive = false;
+        let waveTimeout = null;
+        let lastEnemyDeath = Date.now();
+
+        // Chemin des ennemis (vue 3/4 côté)
+        const path = [
+            {i: 0, j: 0}, {i: 0, j: 1}, {i: 0, j: 2}, {i: 1, j: 2}, {i: 2, j: 2},
+            {i: 2, j: 3}, {i: 2, j: 4}, {i: 3, j: 4}, {i: 4, j: 4}, {i: 5, j: 4}, {i: 5, j: 5}, {i: 5, j: 6}, {i: 5, j: 7}
+        ];
+
+        // Vue 3/4 côté (plateau "couché")
+        function isoX(i, j) { return 80 + j * tileW + i * tileW/2; }
+        function isoY(i, j) { return 60 + i * tileH; }
+
+        function drawBoard() {
+            ctx.clearRect(0,0,700,400);
+            // Grille
+            for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) {
+                let x = isoX(i,j), y = isoY(i,j);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x+tileW/2, y+tileH/2);
+                ctx.lineTo(x, y+tileH);
+                ctx.lineTo(x-tileW/2, y+tileH/2);
+                ctx.closePath();
+                ctx.strokeStyle = "#888";
+                ctx.stroke();
+            }
+            // Chemin
+            for(const cell of path) {
+                let x = isoX(cell.i, cell.j), y = isoY(cell.i, cell.j);
+                ctx.fillStyle = "#ffe066";
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x+tileW/2, y+tileH/2);
+                ctx.lineTo(x, y+tileH);
+                ctx.lineTo(x-tileW/2, y+tileH/2);
+                ctx.closePath();
+                ctx.fill();
+            }
+            // Tours
+            for(const t of towers) {
+                let x = isoX(t.i, t.j), y = isoY(t.i, t.j);
+                ctx.save();
+                ctx.translate(x, y+tileH/2);
+                if(t.level === 1) {
+                    // Triangle
+                    ctx.beginPath();
+                    ctx.moveTo(0, -18);
+                    ctx.lineTo(15, 12);
+                    ctx.lineTo(-15, 12);
+                    ctx.closePath();
+                    ctx.fillStyle = "#3a6";
+                    ctx.fill();
+                    ctx.strokeStyle = "#222";
+                    ctx.stroke();
+                } else {
+                    // Carré
+                    ctx.fillStyle = "#36a";
+                    ctx.fillRect(-15, -15, 30, 30);
+                    ctx.strokeStyle = "#222";
+                    ctx.strokeRect(-15, -15, 30, 30);
+                }
+                ctx.restore();
+            }
+            // Ennemis
+            for(const e of enemies) {
+                let pos = path[Math.floor(e.progress)];
+                if(!pos) continue;
+                let next = path[Math.floor(e.progress)+1] || pos;
+                let frac = e.progress - Math.floor(e.progress);
+                let i = pos.i + (next.i-pos.i)*frac;
+                let j = pos.j + (next.j-pos.j)*frac;
+                let x = isoX(i,j), y = isoY(i,j);
+                // Cercle ennemi
+                ctx.beginPath();
+                ctx.arc(x, y+tileH/2, 13, 0, 2*Math.PI);
+                ctx.fillStyle = "#c33";
+                ctx.fill();
+                ctx.strokeStyle = "#222";
+                ctx.stroke();
+                // Barre de vie
+                ctx.fillStyle = "#222";
+                ctx.fillRect(x-14, y+tileH/2-20, 28, 5);
+                ctx.fillStyle = "#0c0";
+                ctx.fillRect(x-14, y+tileH/2-20, 28*(e.hp/e.maxHp), 5);
+                ctx.strokeStyle = "#000";
+                ctx.strokeRect(x-14, y+tileH/2-20, 28, 5);
+            }
+        }
+
+        // Placement de tour
+        document.getElementById('board').onclick = function(e) {
+            const rect = this.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            // Trouver la case la plus proche
+            let minDist = 9999, sel = null;
+            for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) {
+                let x = isoX(i,j), y = isoY(i,j)+tileH/2;
+                let d = Math.hypot(mx-x, my-y);
+                if(d<22 && !path.some(cell=>cell.i===i&&cell.j===j) && !towers.some(t=>t.i===i&&t.j===j)) {
+                    if(d<minDist) { minDist = d; sel = {i,j}; }
+                }
+            }
+            if(sel && money>=30) {
+                towers.push({i:sel.i, j:sel.j, level:1});
+                money -= 30;
+                updateMoney();
+                drawBoard();
+            }
+        };
+
+        // Amélioration de tour (clic droit)
+        document.getElementById('board').addEventListener('contextmenu', function(e){
+            e.preventDefault();
+            const rect = this.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            for(const t of towers) {
+                let x = isoX(t.i,t.j), y = isoY(t.i,t.j)+tileH/2;
+                if(Math.hypot(mx-x, my-y)<22 && t.level===1 && money>=40) {
+                    t.level = 2;
+                    money -= 40;
+                    updateMoney();
+                    drawBoard();
+                    break;
+                }
+            }
+        });
+
+        function updateMoney() {
+            document.getElementById('money').innerText = "Argent : " + money;
+        }
+        function updateWaveInfo() {
+            document.getElementById('waveinfo').innerText = "Vague : " + wave;
+        }
+
+        // Vagues d'ennemis automatiques
+        function spawnWave() {
+            waveActive = true;
+            updateWaveInfo();
+            for(let k=0;k<waveEnemies;k++) {
+                setTimeout(()=>{
+                    enemies.push({progress:0, hp:waveHp, maxHp:waveHp});
+                }, k*700);
+            }
+        }
+
+        function nextWave() {
+            wave++;
+            waveEnemies = Math.floor(waveEnemies*1.3)+1;
+            waveHp = Math.floor(waveHp*1.3)+1;
+            spawnWave();
+        }
+
+        // Lancement automatique des vagues
+        function checkWave() {
+            if(enemies.length === 0 && waveActive) {
+                lastEnemyDeath = Date.now();
+                waveActive = false;
+                // Prochaine vague dans 20s ou 1min max
+                if(waveTimeout) clearTimeout(waveTimeout);
+                waveTimeout = setTimeout(()=>{
+                    nextWave();
+                }, 20000);
+                // Sécurité : vague auto après 1min même si bug
+                setTimeout(()=>{
+                    if(!waveActive) nextWave();
+                }, 60000);
+            }
+        }
+
+        // Animation ennemis et attaques
+        setInterval(()=>{
+            // Déplacement ennemis
+            for(const e of enemies) {
+                e.progress += 0.035 + wave*0.002;
+            }
+            // Attaque des tours
+            for(const t of towers) {
+                for(const e of enemies) {
+                    let pos = path[Math.floor(e.progress)];
+                    if(!pos) continue;
+                    if(Math.abs(t.i-pos.i)<=1 && Math.abs(t.j-pos.j)<=1 && e.hp>0) {
+                        if(t.level===1 && Math.random()<0.05) e.hp--;
+                        if(t.level===2 && Math.random()<0.12) e.hp--;
+                    }
+                }
+            }
+            // Nettoyage ennemis morts ou arrivés
+            for(let i=enemies.length-1;i>=0;i--) {
+                if(enemies[i].hp<=0) {
+                    money += 10;
+                    enemies.splice(i,1);
+                    updateMoney();
+                } else if(enemies[i].progress>=path.length-1) {
+                    enemies.splice(i,1);
+                    // Ici tu peux gérer la perte de vie du joueur
+                }
+            }
+            drawBoard();
+            checkWave();
+        }, 50);
+
+        // Démarrage de la première vague
+        spawnWave();
+        updateMoney();
+        drawBoard();
+
+        // Chat inchangé
         const socket = io();
-        // Récupère code et pseudo depuis l'URL
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const pseudo = params.get('pseudo');
@@ -30,7 +253,6 @@
             const div = document.getElementById('messages');
             div.innerHTML += "<div>"+data.msg+"</div>";
         });
-        // À compléter : logique du plateau, gestion des coups, etc.
     </script>
 </body>
 </html>
