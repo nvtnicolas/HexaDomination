@@ -1,17 +1,49 @@
 <h2>Profil de {{ username }}</h2>
+
+<!-- Boutons principaux -->
+<div style="margin-bottom:20px;">
+    <a href="/lobby"><button>Revenir au salon</button></a>
+    <a href="/logout"><button>Déconnexion</button></a>
+</div>
+
+<!-- Changer la photo de profil -->
+<form method="post" action="/change_avatar" enctype="multipart/form-data" style="margin-bottom:20px;">
+    <label>Photo de profil :</label>
+    <img src="{{ avatar_url }}" alt="Avatar" style="width:60px;height:60px;border-radius:50%;vertical-align:middle;">
+    <input type="file" name="avatar" accept="image/*">
+    <button type="submit">Changer</button>
+</form>
+
 <h3>Amis</h3>
 <ul>
 {% for friend in friends %}
-    <li>{{ friend }}</li>
+    <li>
+        {{ friend }}
+        {% if friend in online_friends %}
+            <span style="color:green;">● en ligne</span>
+            {% if online_friends[friend]['in_game'] %}
+                <a href="/watch/{{ online_friends[friend]['game_id'] }}"><button>Voir la partie</button></a>
+            {% else %}
+                <a href="/invite/{{ friend }}"><button>Inviter à jouer</button></a>
+            {% endif %}
+        {% else %}
+            <span style="color:gray;">● hors ligne</span>
+        {% endif %}
+    </li>
 {% endfor %}
 </ul>
 <form method="post" action="/add_friend">
     <input name="friend" placeholder="Ajouter un ami">
     <button type="submit">Ajouter</button>
 </form>
+
 <h3>Historique des parties</h3>
 <ul>
 {% for game in games %}
-    <li>Contre {{ game[2] if game[1]==username else game[1] }} - Gagnant : {{ game[3] }}</li>
+    <li>
+        Contre {{ game[2] if game[1]==username else game[1] }} -
+        Gagnant : {{ game[3] }}
+        <a href="/watch/{{ game[0] }}"><button>Voir</button></a>
+    </li>
 {% endfor %}
 </ul>

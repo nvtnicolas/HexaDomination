@@ -5,36 +5,164 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body { font-family: Arial; background: #e0f0ff; text-align: center; }
-        #game { margin-top: 30px; }
+        #game { margin-top: 30px; display:flex; justify-content:center; }
         canvas { background: #b7e0b7; border: 2px solid #333; }
         #messages { margin-top: 20px; }
+        #tower-info {
+            background: #fff;
+            border: 1px solid #333;
+            padding: 10px;
+            display: none;
+            position: fixed;
+            right: 30px;
+            top: 30px;
+            min-width: 200px;
+            z-index: 1000;
+            box-shadow: 2px 2px 8px #8884;
+            text-align: left;
+        }
+        #tower-info button { margin: 5px; }
+        /* Styles pour le chat */
+        #chat {
+            margin-top: 30px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #chat-messages {
+            margin-top: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #aaa;
+            background: #fff;
+            padding: 5px;
+            width: 300px;
+            text-align: left;
+        }
+        #chat input {
+            width: 300px;
+            padding: 10px;
+            margin-right: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #chat button {
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #chat button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Styles pour le panneau de chat */
+        #chat-panel {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            width: 340px;
+            background: #fff;
+            border: 1px solid #333;
+            border-radius: 8px;
+            box-shadow: 2px 2px 8px #8884;
+            z-index: 2000;
+        }
+        #chat-header {
+            background: #007bff;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+        }
+        #chat-content {
+            padding: 10px;
+        }
+        #chat-messages {
+            margin-bottom: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #aaa;
+            background: #f9f9f9;
+            padding: 5px;
+            height: 120px;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #chat-send {
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        #chat-send:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <h1>HexaDomination - Tower Defense (Solo)</h1>
     <div id="game">
-        <canvas id="board" width="700" height="400"></canvas>
         <div>
-            <span id="money">Argent : 100</span>
-            <span id="waveinfo" style="margin-left:30px;">Vague : 1</span>
+            <h3>Votre plateau</h3>
+            <canvas id="board" width="700" height="400"></canvas>
         </div>
-        <div id="messages"></div>
+        <div style="margin-left:40px;">
+            <h3>Plateau adverse</h3>
+            <canvas id="enemyboard" width="700" height="400"></canvas>
+        </div>
     </div>
+    <div>
+        <span id="money">Argent : 100</span>
+        <span id="waveinfo" style="margin-left:30px;">Vague : 1</span>
+        <span id="lives" style="margin-left:30px;">Vies : 20</span>
+        <button id="nextwave" style="margin-left:30px;">Passer à la manche suivante</button>
+    </div>
+    <div id="messages"></div>
+    <div id="tower-info"></div>
+
+    <!-- Ajoute ce bloc HTML pour le chat sous les plateaux -->
+    <div id="chat-panel">
+        <div id="chat-header" onclick="toggleChat()">
+            💬 Chat <span id="chat-toggle" style="float:right;">▼</span>
+        </div>
+        <div id="chat-content">
+            <div id="chat-messages"></div>
+            <div style="display:flex;">
+                <input id="chat-input" type="text" placeholder="Message..." style="flex:1;">
+                <button id="chat-send">Envoyer</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- Plateau ---
-        const ctx = document.getElementById('board').getContext('2d');
+        // Ton plateau
+        let towers = [];
+        // Plateau adverse (simulé)
+        let enemyTowers = [];
+
         const rows = 6, cols = 8;
         const tileW = 60, tileH = 30; // isométrique vue 3/4 côté
         let money = 100;
-        let towers = []; // {i, j, level}
+        let lives = 20;
         let enemies = []; // {progress, hp, maxHp}
-        let placing = false;
         let wave = 1;
         let waveEnemies = 5;
         let waveHp = 2;
         let waveActive = false;
         let waveTimeout = null;
-        let lastEnemyDeath = Date.now();
+        let selectedTower = null;
 
         // Chemin des ennemis (vue 3/4 côté)
         const path = [
@@ -42,11 +170,19 @@
             {i: 2, j: 3}, {i: 2, j: 4}, {i: 3, j: 4}, {i: 4, j: 4}, {i: 5, j: 4}, {i: 5, j: 5}, {i: 5, j: 6}, {i: 5, j: 7}
         ];
 
-        // Vue 3/4 côté (plateau "couché")
+        // Caractéristiques des niveaux de tour
+        const towerLevels = [
+            {name: "Triangle", price: 30, range: 1.5, color: "#3a6", shape: "triangle", upgrade: 40},
+            {name: "Carré", price: 40, range: 2, color: "#36a", shape: "square", upgrade: 60},
+            {name: "Pentagone", price: 60, range: 2.5, color: "#a63", shape: "pentagon", upgrade: 90},
+            {name: "Hexagone", price: 90, range: 3, color: "#a36", shape: "hexagon", upgrade: null}
+        ];
+
         function isoX(i, j) { return 80 + j * tileW + i * tileW/2; }
         function isoY(i, j) { return 60 + i * tileH; }
 
-        function drawBoard() {
+        function drawBoard(boardId, towersArray) {
+            const ctx = document.getElementById(boardId).getContext('2d');
             ctx.clearRect(0,0,700,400);
             // Grille
             for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) {
@@ -73,28 +209,23 @@
                 ctx.fill();
             }
             // Tours
-            for(const t of towers) {
+            for(const t of towersArray) {
                 let x = isoX(t.i, t.j), y = isoY(t.i, t.j);
                 ctx.save();
                 ctx.translate(x, y+tileH/2);
-                if(t.level === 1) {
-                    // Triangle
+                // Affiche la portée si sélectionnée
+                if(selectedTower && selectedTower.i === t.i && selectedTower.j === t.j) {
                     ctx.beginPath();
-                    ctx.moveTo(0, -18);
-                    ctx.lineTo(15, 12);
-                    ctx.lineTo(-15, 12);
-                    ctx.closePath();
-                    ctx.fillStyle = "#3a6";
+                    ctx.arc(0, 0, towerLevels[t.level-1].range*tileW, 0, 2*Math.PI);
+                    ctx.strokeStyle = "#0c0";
+                    ctx.globalAlpha = 0.2;
+                    ctx.fillStyle = "#0c0";
                     ctx.fill();
-                    ctx.strokeStyle = "#222";
+                    ctx.globalAlpha = 1;
                     ctx.stroke();
-                } else {
-                    // Carré
-                    ctx.fillStyle = "#36a";
-                    ctx.fillRect(-15, -15, 30, 30);
-                    ctx.strokeStyle = "#222";
-                    ctx.strokeRect(-15, -15, 30, 30);
                 }
+                // Dessin selon le niveau
+                drawTowerShape(ctx, t.level);
                 ctx.restore();
             }
             // Ennemis
@@ -123,46 +254,136 @@
             }
         }
 
-        // Placement de tour
+        function drawTowerShape(ctx, level) {
+            const info = towerLevels[level-1];
+            ctx.fillStyle = info.color;
+            ctx.strokeStyle = "#222";
+            if(info.shape === "triangle") {
+                ctx.beginPath();
+                ctx.moveTo(0, -18);
+                ctx.lineTo(15, 12);
+                ctx.lineTo(-15, 12);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if(info.shape === "square") {
+                ctx.fillRect(-15, -15, 30, 30);
+                ctx.strokeRect(-15, -15, 30, 30);
+            } else if(info.shape === "pentagon") {
+                ctx.beginPath();
+                for(let k=0;k<5;k++) {
+                    let angle = Math.PI/2 + k*2*Math.PI/5;
+                    ctx.lineTo(0+18*Math.cos(angle), 0+18*Math.sin(angle));
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if(info.shape === "hexagon") {
+                ctx.beginPath();
+                for(let k=0;k<6;k++) {
+                    let angle = Math.PI/6 + k*2*Math.PI/6;
+                    ctx.lineTo(0+18*Math.cos(angle), 0+18*Math.sin(angle));
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        // Clic gauche : ouvrir le menu si clic sur une tour, sinon placer une tour
         document.getElementById('board').onclick = function(e) {
             const rect = this.getBoundingClientRect();
             const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-            // Trouver la case la plus proche
-            let minDist = 9999, sel = null;
-            for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) {
-                let x = isoX(i,j), y = isoY(i,j)+tileH/2;
-                let d = Math.hypot(mx-x, my-y);
-                if(d<22 && !path.some(cell=>cell.i===i&&cell.j===j) && !towers.some(t=>t.i===i&&t.j===j)) {
-                    if(d<minDist) { minDist = d; sel = {i,j}; }
-                }
-            }
-            if(sel && money>=30) {
-                towers.push({i:sel.i, j:sel.j, level:1});
-                money -= 30;
-                updateMoney();
-                drawBoard();
-            }
-        };
-
-        // Amélioration de tour (clic droit)
-        document.getElementById('board').addEventListener('contextmenu', function(e){
-            e.preventDefault();
-            const rect = this.getBoundingClientRect();
-            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            let clickedOnTower = false;
+            // Vérifie si on clique sur une tour
             for(const t of towers) {
                 let x = isoX(t.i,t.j), y = isoY(t.i,t.j)+tileH/2;
-                if(Math.hypot(mx-x, my-y)<22 && t.level===1 && money>=40) {
-                    t.level = 2;
-                    money -= 40;
-                    updateMoney();
-                    drawBoard();
+                if(Math.hypot(mx-x, my-y)<22) {
+                    selectedTower = t;
+                    showTowerInfo(t);
+                    drawBoard('board', towers);
+                    clickedOnTower = true;
                     break;
                 }
             }
+            if (!clickedOnTower) {
+                // Sinon, pose une tour
+                let minDist = 9999, sel = null;
+                for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) {
+                    let x = isoX(i,j), y = isoY(i,j)+tileH/2;
+                    let d = Math.hypot(mx-x, my-y);
+                    if(d<22 && !path.some(cell=>cell.i===i&&cell.j===j) && !towers.some(t=>t.i===i&&t.j===j)) {
+                        if(d<minDist) { minDist = d; sel = {i,j}; }
+                    }
+                }
+                if(sel && money>=towerLevels[0].price) {
+                    towers.push({i:sel.i, j:sel.j, level:1});
+                    money -= towerLevels[0].price;
+                    updateMoney();
+                    drawBoard('board', towers);
+                }
+                selectedTower = null;
+                hideTowerInfo();
+            }
+        };
+
+        // Pour afficher les deux plateaux :
+        drawBoard('board', towers);
+        drawBoard('enemyboard', enemyTowers);
+
+        // Affichage des infos tour (toujours en haut à droite)
+        function showTowerInfo(t) {
+            const info = towerLevels[t.level-1];
+            let html = `<b>${info.name}</b><br>
+                Niveau : ${t.level}<br>
+                Portée : ${info.range}<br>
+                <button onclick="sellTower(selectedTower)">Vendre (+${Math.floor(info.price/2)})</button>`;
+            if(t.level < towerLevels.length) {
+                html += `<button onclick="upgradeTower(selectedTower)">Améliorer (-${towerLevels[t.level].upgrade})</button>`;
+            }
+            document.getElementById('tower-info').innerHTML = html;
+            document.getElementById('tower-info').style.display = '';
+        }
+
+        // Vente de tour (bouton dans la popup)
+        function sellTower(t) {
+            let refund = Math.floor(towerLevels[t.level-1].price/2);
+            money += refund;
+            towers = towers.filter(x => x !== t);
+            updateMoney();
+            drawBoard('board', towers);
+            hideTowerInfo();
+        }
+
+        // Amélioration de tour (bouton dans la popup)
+        function upgradeTower(t) {
+            if(t.level < towerLevels.length && money>=towerLevels[t.level].upgrade) {
+                money -= towerLevels[t.level].upgrade;
+                t.level++;
+                updateMoney();
+                drawBoard('board', towers);
+                showTowerInfo(t); // refresh info
+            }
+        }
+
+        // Fermer la popup d'info tour si on clique ailleurs (sauf sur la popup elle-même)
+        document.body.addEventListener('mousedown', function(e){
+            // Ne ferme le menu que si on clique en dehors du menu ET du canvas
+            if(e.target.closest('#tower-info')==null && e.target.id!=="board") {
+                selectedTower = null;
+                hideTowerInfo();
+            }
         });
+
+        function hideTowerInfo() {
+            document.getElementById('tower-info').style.display = 'none';
+        }
 
         function updateMoney() {
             document.getElementById('money').innerText = "Argent : " + money;
+        }
+        function updateLives() {
+            document.getElementById('lives').innerText = "Vies : " + lives;
         }
         function updateWaveInfo() {
             document.getElementById('waveinfo').innerText = "Vague : " + wave;
@@ -189,7 +410,6 @@
         // Lancement automatique des vagues
         function checkWave() {
             if(enemies.length === 0 && waveActive) {
-                lastEnemyDeath = Date.now();
                 waveActive = false;
                 // Prochaine vague dans 20s ou 1min max
                 if(waveTimeout) clearTimeout(waveTimeout);
@@ -211,48 +431,101 @@
             }
             // Attaque des tours
             for(const t of towers) {
+                const info = towerLevels[t.level-1];
                 for(const e of enemies) {
                     let pos = path[Math.floor(e.progress)];
                     if(!pos) continue;
-                    if(Math.abs(t.i-pos.i)<=1 && Math.abs(t.j-pos.j)<=1 && e.hp>0) {
-                        if(t.level===1 && Math.random()<0.05) e.hp--;
-                        if(t.level===2 && Math.random()<0.12) e.hp--;
+                    // Portée dépend du niveau
+                    let dist = Math.hypot(t.i-pos.i, t.j-pos.j);
+                    if(dist<=info.range && e.hp>0) {
+                        // Probabilité de toucher augmente avec le niveau
+                        let hitChance = 0.05 + 0.07*(t.level-1);
+                        if(Math.random()<hitChance) e.hp--;
                     }
                 }
             }
             // Nettoyage ennemis morts ou arrivés
             for(let i=enemies.length-1;i>=0;i--) {
                 if(enemies[i].hp<=0) {
-                    money += 10;
+                    money += 3; // Réduit l'argent gagné par ennemi
                     enemies.splice(i,1);
                     updateMoney();
                 } else if(enemies[i].progress>=path.length-1) {
                     enemies.splice(i,1);
-                    // Ici tu peux gérer la perte de vie du joueur
+                    lives -= 1;
+                    updateLives();
+                    if(lives <= 0) {
+                        alert("Partie terminée ! Vous avez perdu.");
+                        window.location.reload();
+                        return;
+                    }
                 }
             }
-            drawBoard();
+            drawBoard('board', towers);
+            drawBoard('enemyboard', enemyTowers);
             checkWave();
         }, 50);
 
         // Démarrage de la première vague
         spawnWave();
         updateMoney();
-        drawBoard();
+        updateLives();
+        drawBoard('board', towers);
+        drawBoard('enemyboard', enemyTowers);
 
-        // Chat inchangé
+        // --- Chat multijoueur ---
         const socket = io();
         const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const pseudo = params.get('pseudo');
+        const code = params.get('code') || 'testroom';
+        const pseudo = params.get('pseudo') || 'Joueur';
 
-        function sendMessage() {
-            socket.emit('game_message', {code: code, msg: pseudo + " dit coucou !"});
-        }
-        socket.on('game_message', data => {
-            const div = document.getElementById('messages');
-            div.innerHTML += "<div>"+data.msg+"</div>";
+        document.getElementById('chat-send').onclick = sendChat;
+        document.getElementById('chat-input').addEventListener('keydown', function(e){
+            if(e.key === "Enter") sendChat();
         });
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if(msg.length > 0) {
+                socket.emit('game_message', {code: code, msg: `<b>${pseudo}</b> : ${msg}`});
+                input.value = "";
+            }
+        }
+
+        socket.on('game_message', data => {
+            const div = document.getElementById('chat-messages');
+            div.innerHTML += "<div>"+data.msg+"</div>";
+            div.scrollTop = div.scrollHeight;
+        });
+
+        // Passer à la manche suivante (clic sur le bouton)
+        document.getElementById('nextwave').onclick = function() {
+            if (!waveActive) {
+                if (waveTimeout) clearTimeout(waveTimeout);
+                nextWave();
+            }
+        };
+
+        // Pour tester, ajoute un bouton qui ajoute une tour sur le plateau adverse :
+        document.getElementById('enemyboard').onclick = function(e) {
+            // Simule une action adverse (exemple : ajoute une tour au hasard)
+            enemyTowers.push({i:Math.floor(Math.random()*6), j:Math.floor(Math.random()*8), level:1});
+            drawBoard('enemyboard', enemyTowers);
+        };
+
+        // Fonction pour basculer l'affichage du chat
+        function toggleChat() {
+            const content = document.getElementById('chat-content');
+            const toggle = document.getElementById('chat-toggle');
+            if(content.style.display === "none") {
+                content.style.display = "";
+                toggle.textContent = "▼";
+            } else {
+                content.style.display = "none";
+                toggle.textContent = "▲";
+            }
+        }
     </script>
 </body>
 </html>
