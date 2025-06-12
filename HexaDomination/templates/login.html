@@ -1,6 +1,22 @@
-<h2>Connexion</h2>
-<form method="post">
-    <input name="username" placeholder="Nom d'utilisateur"><br>
-    <input name="password" type="password" placeholder="Mot de passe"><br>
-    <button type="submit">Se connecter</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HexaDomination - Connexion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <form method="post">
+        <h2>Connexion</h2>
+        {% if error %}
+            <div style="color: red; margin-bottom: 15px;">{{ error }}</div>
+        {% endif %}
+        <input name="username" placeholder="Nom d'utilisateur" required>
+        <input name="password" type="password" placeholder="Mot de passe" required>
+        <button type="submit">Se connecter</button>
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/register" style="color: #007bff; text-decoration: none;">Créer un compte</a> |
+            <a href="/" style="color: #007bff; text-decoration: none;">Retour au lobby</a>
+        </div>
+    </form>
+</body>
+</html>

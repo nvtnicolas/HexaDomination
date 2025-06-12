@@ -1,0 +1,65 @@
+body { 
+    font-family: Arial; 
+    background: #e0f0ff; 
+    text-align: center; 
+}
+
+#chat { 
+    margin: 20px auto; 
+    width: 60%; 
+}
+
+#players { 
+    margin: 20px auto; 
+}
+
+#ready-btn { 
+    font-size: 1.2em; 
+    margin: 10px; 
+    padding: 12px 24px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#ready-btn:hover {
+    background-color: #218838;
+}
+
+#ready-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+#messages {
+    height: 120px;
+    overflow: auto;
+    border: 1px solid #aaa;
+    background: #fff;
+    padding: 10px;
+    text-align: left;
+    border-radius: 4px;
+}
+
+#msg {
+    width: 70%;
+    padding: 10px;
+    margin: 10px 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#chat button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#chat button:hover {
+    background-color: #0056b3;
+}

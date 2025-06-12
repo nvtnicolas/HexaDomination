@@ -3,12 +3,7 @@
 <head>
     <title>HexaDomination - Attente</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <style>
-        body { font-family: Arial; background: #e0f0ff; text-align: center; }
-        #chat { margin: 20px auto; width: 60%; }
-        #players { margin: 20px auto; }
-        #ready-btn { font-size: 1.2em; margin: 10px; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/waiting.css') }}">
 </head>
 <body>
     <h1>Salon <span id="room_code"></span> - En attente</h1>
@@ -16,57 +11,11 @@
     <button id="ready-btn" onclick="setReady()" disabled>Prêt</button>
     <div id="ready-status"></div>
     <div id="chat">
-        <div id="messages" style="height:120px;overflow:auto;border:1px solid #aaa;background:#fff;"></div>
-        <input id="msg" placeholder="Message..." onkeydown="if(event.key==='Enter'){sendMsg();}">
+        <div id="messages"></div>
+        <input id="msg" placeholder="Message...">
         <button onclick="sendMsg()">Envoyer</button>
     </div>
-    <script>
-        const socket = io();
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const pseudo = params.get('pseudo');
-        let ready = false;
-
-        document.getElementById('room_code').innerText = code;
-
-        // Rejoindre la room d'attente
-        socket.emit('waiting_room', {code: code, pseudo: pseudo});
-
-        // Affichage des joueurs et statut
-        socket.on('waiting_status', data => {
-            let html = `<b>Joueurs (${data.players.length}/2):</b><ul>`;
-            data.players.forEach(p => {
-                html += `<li>${p.pseudo} ${p.ready ? '(Prêt)' : '(En attente)'}</li>`;
-            });
-            html += '</ul>';
-            document.getElementById('players').innerHTML = html;
-            document.getElementById('ready-btn').disabled = data.players.length < 2 || data.players.find(p => p.pseudo === pseudo && p.ready);
-            document.getElementById('ready-status').innerText = data.players.length < 2 ? "En attente d'un autre joueur..." : "";
-        });
-
-        // Chat
-        function sendMsg() {
-            const msg = document.getElementById('msg').value.trim();
-            if (msg) {
-                socket.emit('waiting_chat', {code: code, pseudo: pseudo, msg: msg});
-                document.getElementById('msg').value = '';
-            }
-        }
-        socket.on('waiting_chat', data => {
-            const div = document.getElementById('messages');
-            div.innerHTML += `<div><b>${data.pseudo}:</b> ${data.msg}</div>`;
-            div.scrollTop = div.scrollHeight;
-        });
-
-        // Prêt
-        function setReady() {
-            socket.emit('waiting_ready', {code: code, pseudo: pseudo});
-        }
-
-        // Lancement du jeu
-        socket.on('start_game', () => {
-            window.location.href = `/game?code=${code}&pseudo=${encodeURIComponent(pseudo)}`;
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/waiting.js') }}"></script>
 </body>
 </html>

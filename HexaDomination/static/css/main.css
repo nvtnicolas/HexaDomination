@@ -1,0 +1,50 @@
+body { 
+    font-family: Arial; 
+    background: #e0f0ff; 
+    text-align: center; 
+}
+
+button, input { 
+    font-size: 1.2em; 
+    margin: 10px; 
+}
+
+#login_prompt {
+    display: none;
+}
+
+#pseudo_entry {
+    margin: 20px 0;
+}
+
+#menu, #create, #join {
+    margin: 20px 0;
+}
+
+#create, #join {
+    display: none;
+}
+
+#join_error {
+    color: red;
+    margin-top: 10px;
+}
+
+#visible_rooms {
+    margin-top: 15px;
+}
+
+#visible_rooms button {
+    display: block;
+    margin: 5px auto;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#visible_rooms button:hover {
+    background-color: #0056b3;
+}

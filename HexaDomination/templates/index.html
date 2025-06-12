@@ -3,10 +3,7 @@
 <head>
     <title>HexaDomination - Salons</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <style>
-        body { font-family: Arial; background: #e0f0ff; text-align: center; }
-        button, input { font-size: 1.2em; margin: 10px; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
 <body>
     <div id="login_prompt" style="display:none;">
@@ -38,94 +35,10 @@
         <button onclick="joinRoom()">Rejoindre</button>
         <button onclick="showMenu()">Retour</button>
         <button onclick="showVisibleRooms()">Voir les salons visibles</button>
-        <div id="join_error" style="color:red;"></div>
+        <div id="join_error"></div>
         <div id="visible_rooms"></div>
     </div>
-    <script>
-        const socket = io();
-        let pseudo = "";
-
-        function showMenu() {
-            document.getElementById('menu').style.display = '';
-            document.getElementById('create').style.display = 'none';
-            document.getElementById('join').style.display = 'none';
-        }
-        function showCreate() {
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('create').style.display = '';
-            document.getElementById('join').style.display = 'none';
-        }
-        function showJoin() {
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('create').style.display = 'none';
-            document.getElementById('join').style.display = '';
-        }
-        function createRoom() {
-            pseudo = document.getElementById('pseudo').value.trim();
-            const code = document.getElementById('create_code').value.trim().toUpperCase() || Math.random().toString(36).substr(2,6).toUpperCase();
-            const visible = document.getElementById('create_visible').checked;
-            if (!pseudo) { alert("Entrez un pseudo !"); return; }
-            socket.emit('create_room', {code: code, pseudo: pseudo, visible: visible});
-        }
-        function joinRoom() {
-            pseudo = document.getElementById('pseudo').value.trim();
-            const code = document.getElementById('join_code').value.trim().toUpperCase();
-            if (!pseudo) { alert("Entrez un pseudo !"); return; }
-            socket.emit('join_room', {code: code, pseudo: pseudo});
-        }
-        function joinQueue() {
-            pseudo = document.getElementById('pseudo').value.trim();
-            if (!pseudo) {
-                alert("Veuillez entrer un pseudo !");
-                return;
-            }
-            socket.emit('join_queue', {pseudo: pseudo});
-        }
-        function showVisibleRooms() {
-            socket.emit('get_visible_rooms');
-        }
-        socket.on('room_created', data => {
-            window.location.href = `/waiting?code=${data.code}&pseudo=${encodeURIComponent(pseudo)}`;
-        });
-        socket.on('room_joined', data => {
-            window.location.href = `/waiting?code=${data.code}&pseudo=${encodeURIComponent(pseudo)}`;
-        });
-        socket.on('join_failed', data => {
-            document.getElementById('join_error').innerText = data.reason;
-        });
-        socket.on('queue_joined', data => {
-            alert("Vous êtes dans la file d'attente depuis " + data.date);
-        });
-        socket.on('visible_rooms', rooms => {
-            const div = document.getElementById('visible_rooms');
-            div.innerHTML = '';
-            if (rooms.length === 0) {
-                div.innerHTML = "<i>Aucun salon visible disponible.</i>";
-            } else {
-                rooms.forEach(room => {
-                    const btn = document.createElement('button');
-                    btn.textContent = `Salon ${room.code} (${room.players.length}/2)`;
-                    btn.onclick = () => {
-                        pseudo = document.getElementById('pseudo').value.trim();
-                        socket.emit('join_room', {code: room.code, pseudo: pseudo});
-                    };
-                    div.appendChild(btn);
-                });
-            }
-        });
-        fetch('/profile')
-            .then(resp => {
-                if (resp.redirected) {
-                    // Pas connecté, affiche le bouton de connexion
-                    document.getElementById('login_prompt').style.display = '';
-                    document.getElementById('menu').style.display = 'none';
-                } else {
-                    // Connecté, affiche le menu
-                    document.getElementById('login_prompt').style.display = 'none';
-                    document.getElementById('menu').style.display = '';
-                }
-            });
-        showMenu();
-    </script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lobby.js') }}"></script>
 </body>
 </html>

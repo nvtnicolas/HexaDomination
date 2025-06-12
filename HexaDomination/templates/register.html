@@ -1,6 +1,26 @@
-<h2>Créer un compte</h2>
-<form method="post">
-    <input name="username" placeholder="Nom d'utilisateur" required><br>
-    <input name="password" type="password" placeholder="Mot de passe" required><br>
-    <button type="submit">Créer le compte</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HexaDomination - Inscription</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <form method="post">
+        <h2>Créer un compte</h2>
+        {% if error %}
+            <div style="color: red; margin-bottom: 15px;">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+            <div style="color: green; margin-bottom: 15px;">{{ success }}</div>
+        {% endif %}
+        <input name="username" placeholder="Nom d'utilisateur" required>
+        <input name="password" type="password" placeholder="Mot de passe" required>
+        <input name="confirm_password" type="password" placeholder="Confirmer le mot de passe" required>
+        <button type="submit">Créer le compte</button>
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/login" style="color: #007bff; text-decoration: none;">Déjà un compte ?</a> |
+            <a href="/" style="color: #007bff; text-decoration: none;">Retour au lobby</a>
+        </div>
+    </form>
+</body>
+</html>

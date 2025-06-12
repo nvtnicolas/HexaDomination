@@ -1,0 +1,127 @@
+body { 
+    font-family: Arial; 
+    background: #e0f0ff; 
+    text-align: center; 
+}
+
+#game { 
+    margin-top: 30px; 
+    display: flex; 
+    justify-content: center; 
+}
+
+canvas { 
+    background: #b7e0b7; 
+    border: 2px solid #333; 
+}
+
+#messages { 
+    margin-top: 20px; 
+}
+
+#tower-info {
+    background: #fff;
+    border: 1px solid #333;
+    padding: 10px;
+    display: none;
+    position: fixed;
+    right: 30px;
+    top: 30px;
+    min-width: 200px;
+    z-index: 1000;
+    box-shadow: 2px 2px 8px #8884;
+    text-align: left;
+    border-radius: 4px;
+}
+
+#tower-info button { 
+    margin: 5px;
+    padding: 8px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#tower-info button:hover {
+    background-color: #0056b3;
+}
+
+/* Styles pour le panneau de chat */
+#chat-panel {
+    position: fixed;
+    right: 30px;
+    bottom: 30px;
+    width: 340px;
+    background: #fff;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 2px 2px 8px #8884;
+    z-index: 2000;
+}
+
+#chat-header {
+    background: #007bff;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px 8px 0 0;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#chat-content {
+    padding: 10px;
+}
+
+#chat-messages {
+    margin-bottom: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid #aaa;
+    background: #f9f9f9;
+    padding: 5px;
+    height: 120px;
+    border-radius: 4px;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#chat-send {
+    padding: 8px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+#chat-send:hover {
+    background-color: #0056b3;
+}
+
+/* Styles pour les informations de jeu */
+#money, #waveinfo, #lives {
+    margin: 0 15px;
+    font-weight: bold;
+}
+
+#nextwave {
+    margin-left: 30px;
+    padding: 10px 15px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#nextwave:hover {
+    background-color: #218838;
+}
