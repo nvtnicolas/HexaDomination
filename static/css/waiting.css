@@ -1,0 +1,4 @@
+body { font-family: Arial; background: #e0f0ff; text-align: center; }
+        #chat { margin: 20px auto; width: 60%; }
+        #players { margin: 20px auto; }
+        #ready-btn { font-size: 1.2em; margin: 10px; }

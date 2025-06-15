@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HexaDomination - Tower Defense Solo</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/game.css') }}">
+</head>
+<body>
+    <h1>HexaDomination - Tower Defense (Solo)</h1>
+    <div id="game">
+        <div>
+            <h3>Votre plateau</h3>
+            <canvas id="board" width="700" height="400"></canvas>
+        </div>
+        <div style="margin-left:40px;">
+            <h3>Plateau adverse</h3>
+            <canvas id="enemyboard" width="700" height="400"></canvas>
+        </div>
+    </div>
+    <div>
+        <span id="money">Argent : 100</span>
+        <span id="waveinfo" style="margin-left:30px;">Vague : 1</span>
+        <span id="lives" style="margin-left:30px;">Vies : 20</span>
+        <button id="nextwave" style="margin-left:30px;">Passer à la manche suivante</button>
+    </div>
+    <div id="messages"></div>
+    <div id="tower-info"></div>
+
+    <!-- Ajoute ce bloc HTML pour le chat sous les plateaux -->
+    <div id="chat-panel">
+        <div id="chat-header" onclick="toggleChat()">
+            💬 Chat <span id="chat-toggle" style="float:right;">▼</span>
+        </div>
+        <div id="chat-content">
+            <div id="chat-messages"></div>
+            <div style="display:flex;">
+                <input id="chat-input" type="text" placeholder="Message..." style="flex:1;">
+                <button id="chat-send">Envoyer</button>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>

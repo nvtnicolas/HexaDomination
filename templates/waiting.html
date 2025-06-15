@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HexaDomination - Attente</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/waiting.css') }}">
+</head>
+<body>
+    <h1>Salon <span id="room_code"></span> - En attente</h1>
+    <div id="players"></div>
+    <button id="ready-btn" onclick="setReady()" disabled>Prêt</button>
+    <div id="ready-status"></div>
+    <div id="chat">
+        <div id="messages" style="height:120px;overflow:auto;border:1px solid #aaa;background:#fff;"></div>
+        <input id="msg" placeholder="Message..." onkeydown="if(event.key==='Enter'){sendMsg();}">
+        <button onclick="sendMsg()">Envoyer</button>
+    </div>
+    <script src="{{ url_for('static', filename='js/waiting.js') }}"></script>
+</body>
+</html>
