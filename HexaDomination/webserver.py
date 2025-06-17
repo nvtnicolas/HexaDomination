@@ -243,9 +243,14 @@ def on_join(data):
 @socketio.on('game_message')
 def on_game_message(data):
     code = data.get('code', '')
+    pseudo = data.get('pseudo', '')
     msg = data.get('msg', '')
-    if code:
-        socketio.emit('game_message', {'msg': msg}, room=code)
+    
+    if code and msg:
+        socketio.emit('game_message', {
+            'pseudo': pseudo,
+            'msg': msg
+        }, room=code)
 
 @socketio.on('join_queue')
 def on_join_queue(data):

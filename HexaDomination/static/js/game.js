@@ -1,7 +1,5 @@
 // Variables de jeu
 let towers = [];
-let enemyTowers = [];
-
 const rows = 6, cols = 8;
 const tileW = 60, tileH = 30;
 let money = 100;
@@ -33,8 +31,8 @@ const towerLevels = [
 function isoX(i, j) { return 80 + j * tileW + i * tileW/2; }
 function isoY(i, j) { return 60 + i * tileH; }
 
-function drawBoard(boardId, towersArray) {
-    const ctx = document.getElementById(boardId).getContext('2d');
+function drawBoard() {
+    const ctx = document.getElementById('board').getContext('2d');
     ctx.clearRect(0,0,700,400);
     
     // Grille
@@ -64,7 +62,7 @@ function drawBoard(boardId, towersArray) {
     }
     
     // Tours
-    for(const t of towersArray) {
+    for(const t of towers) {
         let x = isoX(t.i, t.j), y = isoY(t.i, t.j);
         ctx.save();
         ctx.translate(x, y+tileH/2);
@@ -165,7 +163,7 @@ function sellTower(t) {
     money += refund;
     towers = towers.filter(x => x !== t);
     updateMoney();
-    drawBoard('board', towers);
+    drawBoard();
     hideTowerInfo();
 }
 
@@ -174,7 +172,7 @@ function upgradeTower(t) {
         money -= towerLevels[t.level].upgrade;
         t.level++;
         updateMoney();
-        drawBoard('board', towers);
+        drawBoard();
         showTowerInfo(t);
     }
 }
@@ -225,6 +223,7 @@ function checkWave() {
     }
 }
 
+// Gestion améliorée du chat
 function toggleChat() {
     const content = document.getElementById('chat-content');
     const toggle = document.getElementById('chat-toggle');
@@ -241,7 +240,14 @@ function sendChat() {
     const input = document.getElementById('chat-input');
     const msg = input.value.trim();
     if(msg.length > 0) {
-        socket.emit('game_message', {code: code, msg: `<b>${pseudo}</b> : ${msg}`});
+        const params = getUrlParams();
+        const code = params.get('code');
+        const pseudo = params.get('pseudo');
+        socket.emit('game_message', {
+            code: code,
+            pseudo: pseudo,
+            msg: msg
+        });
         input.value = "";
     }
 }
@@ -263,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(Math.hypot(mx-x, my-y)<22) {
                 selectedTower = t;
                 showTowerInfo(t);
-                drawBoard('board', towers);
+                drawBoard();
                 clickedOnTower = true;
                 break;
             }
@@ -282,23 +288,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 towers.push({i:sel.i, j:sel.j, level:1});
                 money -= towerLevels[0].price;
                 updateMoney();
-                drawBoard('board', towers);
+                drawBoard();
             }
             selectedTower = null;
             hideTowerInfo();
         }
     };
 
-    document.getElementById('enemyboard').onclick = function(e) {
-        enemyTowers.push({i:Math.floor(Math.random()*6), j:Math.floor(Math.random()*8), level:1});
-        drawBoard('enemyboard', enemyTowers);
-    };
-
+    // Configuration du chat
     document.getElementById('chat-send').onclick = sendChat;
     document.getElementById('chat-input').addEventListener('keydown', function(e){
         if(e.key === "Enter") sendChat();
     });
 
+    // Bouton prochaine vague
     document.getElementById('nextwave').onclick = function() {
         if (!waveActive) {
             if (waveTimeout) clearTimeout(waveTimeout);
@@ -313,10 +316,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Chat
+    // Gestion des messages du chat
     socket.on('game_message', data => {
         const div = document.getElementById('chat-messages');
-        div.innerHTML += "<div>"+data.msg+"</div>";
+        if (data.pseudo) {
+            div.innerHTML += `<div><b>${data.pseudo}:</b> ${data.msg}</div>`;
+        } else {
+            div.innerHTML += `<div>${data.msg}</div>`;
+        }
         div.scrollTop = div.scrollHeight;
     });
 
@@ -355,8 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-        drawBoard('board', towers);
-        drawBoard('enemyboard', enemyTowers);
+        drawBoard();
         checkWave();
     }, 50);
 
@@ -364,6 +370,5 @@ document.addEventListener('DOMContentLoaded', function() {
     spawnWave();
     updateMoney();
     updateLives();
-    drawBoard('board', towers);
-    drawBoard('enemyboard', enemyTowers);
+    drawBoard();
 });

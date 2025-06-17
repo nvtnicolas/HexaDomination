@@ -1,20 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>HexaDomination - Tower Defense Solo</title>
+    <title>HexaDomination - Tower Defense</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/game.css') }}">
 </head>
 <body>
-    <h1>HexaDomination - Tower Defense (Solo)</h1>
+    <h1>HexaDomination - Tower Defense</h1>
     <div id="game">
         <div>
             <h3>Votre plateau</h3>
             <canvas id="board" width="700" height="400"></canvas>
-        </div>
-        <div style="margin-left:40px;">
-            <h3>Plateau adverse</h3>
-            <canvas id="enemyboard" width="700" height="400"></canvas>
         </div>
     </div>
     <div>
@@ -26,7 +22,7 @@
     <div id="messages"></div>
     <div id="tower-info"></div>
 
-    <!-- Panneau de chat -->
+    <!-- Panneau de chat amélioré -->
     <div id="chat-panel">
         <div id="chat-header" onclick="toggleChat()">
             💬 Chat <span id="chat-toggle">▼</span>
